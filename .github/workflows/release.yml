@@ -1,0 +1,61 @@
+name: Publish GitHub Release
+
+on:
+  push:
+    tags:
+      - "**"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build distribution package
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        shell: bash
+        run: |
+          cargo build --all-targets --release --verbose
+          mkdir target/plugin
+          cargo xtask package target/plugin
+          cd target/plugin/
+          tar -czvf ../../ntsc-${{ runner.os }}.tar.gz ntsc.*
+      - name: Get crate version
+        id: version
+        shell: bash
+        run: |
+          CRATE_VERSION=$(cargo metadata --format-version 1 --no-deps | jq --raw-output  '.packages | map(select(.name == "'ntsc'")) | .[0].version')
+          echo "crate=$CRATE_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Upload Release Assets
+        if: ${{ github.event_name != 'workflow_dispatch' && github.ref_name == steps.version.outputs.crate }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "*.tar.gz"
+      - name: Upload Artifacts
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ntsc-${{ runner.os }}
+          path: "*.tar.gz"
