@@ -1,0 +1,114 @@
+// Copyright (C) 2026 Andrew Wason
+// SPDX-License-Identifier: GPL-3.0-or-later
+use std::ffi::CString;
+
+use anyhow::Context;
+use frei0r_rs2::{slice_to_bytes, slice_to_bytes_mut};
+use ntsc_rs::{
+    NtscEffect, NtscEffectFullSettings,
+    settings::SettingsList,
+    yiq_fielding::{
+        BlitInfo, DeinterlaceMode, Normalize, Rgbx, YiqOwned, YiqView, pixel_bytes_for,
+    },
+};
+
+pub struct NtscPlugin {
+    preset_path: CString,
+    width: usize,
+    height: usize,
+    frame_num: usize,
+    effect: Option<NtscEffect>,
+    initialized: bool,
+}
+
+impl frei0r_rs2::Plugin for NtscPlugin {
+    type Kind = frei0r_rs2::KindFilter;
+
+    const PARAMS: &'static [frei0r_rs2::ParamInfo<Self>] = &[frei0r_rs2::ParamInfo::new_string(
+        c"preset",
+        c"Path to NTSC preset JSON file",
+        |plugin| plugin.preset_path.as_c_str(),
+        |plugin, value| plugin.preset_path = value.to_owned(),
+    )];
+
+    fn info() -> frei0r_rs2::PluginInfo {
+        frei0r_rs2::PluginInfo {
+            name: c"ntsc",
+            author: c"Andrew Wason",
+            color_model: frei0r_rs2::ColorModel::RGBA8888,
+            major_version: env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap(),
+            minor_version: env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
+            explanation: Some(c"NTSC filter"),
+        }
+    }
+
+    fn new(width: usize, height: usize) -> Self {
+        Self {
+            preset_path: c"".into(),
+            width,
+            height,
+            frame_num: 0,
+            effect: None,
+            initialized: false,
+        }
+    }
+}
+
+impl frei0r_rs2::FilterPlugin for NtscPlugin {
+    fn update_filter(&mut self, _time: f64, inframe: &[u32], outframe: &mut [u32]) {
+        if !self.initialized
+            && let Err(err) = self.initialize()
+        {
+            eprintln!("Failed to initialize plugin: {err:?}");
+            return;
+        }
+        let Some(ref effect) = self.effect else {
+            return;
+        };
+        let inframe = slice_to_bytes(inframe);
+        let outframe = slice_to_bytes_mut(outframe);
+        self.apply_effect(effect, inframe, outframe);
+        self.frame_num += 1;
+    }
+}
+
+impl NtscPlugin {
+    fn initialize(&mut self) -> anyhow::Result<()> {
+        self.initialized = true;
+        let preset_path = self
+            .preset_path
+            .to_str()
+            .with_context(|| format!("Invalid preset path: {:?}", self.preset_path))?;
+        let file_contents = std::fs::read_to_string(preset_path)?;
+        let settings = SettingsList::<NtscEffectFullSettings>::new().from_json(&file_contents)?;
+        self.effect = Some(settings.into());
+        Ok(())
+    }
+
+    fn apply_effect<T: Normalize>(
+        &self,
+        effect: &NtscEffect,
+        input_frame: &[T],
+        output_frame: &mut [T],
+    ) {
+        let field = effect.use_field.to_yiq_field(self.frame_num);
+        let row_bytes = self.width * pixel_bytes_for::<Rgbx, T>();
+        let mut yiq = YiqOwned::from_strided_buffer::<Rgbx, T>(
+            input_frame,
+            row_bytes,
+            self.width,
+            self.height,
+            field,
+        );
+        let mut view = YiqView::from(&mut yiq);
+        effect.apply_effect_to_yiq(&mut view, self.frame_num, [1.0, 1.0]);
+        view.write_to_strided_buffer::<Rgbx, T, _>(
+            output_frame,
+            BlitInfo::from_full_frame(self.width, self.height, row_bytes),
+            DeinterlaceMode::Bob,
+            (),
+        );
+    }
+}
+
+frei0r_rs2::plugin!(NtscPlugin);
