@@ -7,9 +7,7 @@ use frei0r_rs2::{slice_to_bytes, slice_to_bytes_mut};
 use ntsc_rs::{
     NtscEffect, NtscEffectFullSettings,
     settings::SettingsList,
-    yiq_fielding::{
-        BlitInfo, DeinterlaceMode, Normalize, Rgbx, YiqOwned, YiqView, pixel_bytes_for,
-    },
+    yiq_fielding::{BlitInfo, DeinterlaceMode, Rgbx, YiqOwned, YiqView, pixel_bytes_for},
 };
 
 pub struct NtscPlugin {
@@ -85,15 +83,10 @@ impl NtscPlugin {
         Ok(())
     }
 
-    fn apply_effect<T: Normalize>(
-        &self,
-        effect: &NtscEffect,
-        input_frame: &[T],
-        output_frame: &mut [T],
-    ) {
+    fn apply_effect(&self, effect: &NtscEffect, input_frame: &[u8], output_frame: &mut [u8]) {
         let field = effect.use_field.to_yiq_field(self.frame_num);
-        let row_bytes = self.width * pixel_bytes_for::<Rgbx, T>();
-        let mut yiq = YiqOwned::from_strided_buffer::<Rgbx, T>(
+        let row_bytes = self.width * pixel_bytes_for::<Rgbx, u8>();
+        let mut yiq = YiqOwned::from_strided_buffer::<Rgbx, _>(
             input_frame,
             row_bytes,
             self.width,
@@ -102,7 +95,7 @@ impl NtscPlugin {
         );
         let mut view = YiqView::from(&mut yiq);
         effect.apply_effect_to_yiq(&mut view, self.frame_num, [1.0, 1.0]);
-        view.write_to_strided_buffer::<Rgbx, T, _>(
+        view.write_to_strided_buffer::<Rgbx, _, _>(
             output_frame,
             BlitInfo::from_full_frame(self.width, self.height, row_bytes),
             DeinterlaceMode::Bob,

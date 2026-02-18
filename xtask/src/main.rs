@@ -39,18 +39,22 @@ fn package(mut args: Args) -> anyhow::Result<()> {
     let pattern = match env::consts::OS {
         "macos" => target_dir.join("*/libntsc.dylib"),
         "linux" => target_dir.join("*/libntsc.so"),
+        "windows" => {
+            if output_dir.is_none() {
+                return Ok(());
+            } else {
+                target_dir.join("*/ntsc.dll")
+            }
+        }
         _ => return Ok(()),
     };
     let pattern = pattern.to_str().ok_or(anyhow::anyhow!("Invalid path"))?;
     for entry in glob(pattern)? {
         let path = entry?;
-        let filename = path
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .strip_prefix("lib")
-            .unwrap();
+        let mut filename = path.file_name().unwrap().to_str().unwrap();
+        if env::consts::OS != "windows" {
+            filename = filename.strip_prefix("lib").unwrap()
+        };
         let new_path = if let Some(ref output) = output_dir {
             output.join(filename)
         } else {
@@ -59,7 +63,7 @@ fn package(mut args: Args) -> anyhow::Result<()> {
         let _ = fs::remove_file(&new_path); // Ignore error if nonexistent
         fs::hard_link(&path, &new_path)
             .with_context(|| format!("Link failed {} -> {}", path.display(), new_path.display()))?;
-        if !new_path.ends_with("so") {
+        if env::consts::OS == "macos" && !new_path.ends_with("so") {
             let new_path = new_path.with_extension("so");
             let _ = fs::remove_file(&new_path); // Ignore error if nonexistent
             fs::hard_link(&path, &new_path).with_context(|| {
