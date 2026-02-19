@@ -13,6 +13,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -74,9 +75,13 @@ jobs:
   test:
     name: Test
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      FREI0R_PATH: ${{ github.workspace }}/target/plugins
+
     steps:
       - uses: actions/checkout@v4
 
@@ -92,5 +97,50 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Build
+        shell: bash
+        run: |
+          cargo build --release --verbose
+          mkdir -p "$FREI0R_PATH"
+          cargo xtask package "$FREI0R_PATH"
+
+      - name: Install ffmpeg
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: sudo apt install ffmpeg
+
+      - name: Install ffmpeg
+        if: ${{ runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          brew install ffmpeg-full
+          echo "$(brew --prefix)/opt/ffmpeg-full/bin" >> $GITHUB_PATH
+
+      - name: Install ffmpeg
+        if: ${{ runner.os == 'Windows' }}
+        shell: bash
+        run: choco install ffmpeg-full
+
       - name: Run tests
-        run: cargo test --locked --workspace
+        shell: bash
+        run: |
+          mkdir output
+          ffmpeg -f lavfi \
+            -i testsrc=duration=0.2:size=640x480:rate=10:decimals=2,drawbox=color=red:t=ih/16 \
+            -vf frei0r=ntsc:presets/Low-Power-NTSC.json \
+            -vcodec ffv1 -level 3 \
+            -f nut \
+            -y output/test.nut
+
+      - name: Compare video to fixture
+        uses: rectalogic/diff-video-action@v1
+        with:
+          current-video-path: output
+          reference-video-glob: .github/workflows/test.nut
+          diff-video-path: output/diff
+      - name: Upload videos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: videos-${{ runner.os }}
+          path: output/
