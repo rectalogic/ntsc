@@ -243,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "ntsc"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "frei0r-rs2",
@@ -253,7 +253,7 @@ dependencies = [
 [[package]]
 name = "ntsc-rs"
 version = "0.1.2"
-source = "git+https://github.com/ntsc-rs/ntsc-rs.git?rev=1cc85d0#1cc85d0491492f5289f47561f355138f5e14d05f"
+source = "git+https://github.com/ntsc-rs/ntsc-rs.git?rev=bddab2d#bddab2df789162391aa1981271a3d698a478f2e7"
 dependencies = [
  "fearless_simd",
  "hifijson",
@@ -271,7 +271,7 @@ dependencies = [
 [[package]]
 name = "ntsc-rs-macros"
 version = "0.1.0"
-source = "git+https://github.com/ntsc-rs/ntsc-rs.git?rev=1cc85d0#1cc85d0491492f5289f47561f355138f5e14d05f"
+source = "git+https://github.com/ntsc-rs/ntsc-rs.git?rev=bddab2d#bddab2df789162391aa1981271a3d698a478f2e7"
 dependencies = [
  "proc-macro2",
  "quote",

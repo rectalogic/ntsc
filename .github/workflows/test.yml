@@ -83,7 +83,7 @@ jobs:
       FREI0R_PATH: ${{ github.workspace }}/target/plugins
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1

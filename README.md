@@ -18,6 +18,10 @@ Copy the plugin to your frei0r plugins directory, or on macOS/Linux set `FREI0R_
 Create a preset using the [ntsc-rs application](https://ntsc.rs/docs/standalone-application/)
 or download presets from the [ntsc-rs discussions](https://github.com/ntsc-rs/ntsc-rs/discussions).
 
+frei0r parameter 0 is the preset pathname, parameter 1 is a time multiplier.
+This defaults to 0 (no multiplier) which works for linear encoding.
+For nonlinear usage (e.g. in a video editor), set the multiplier to the framerate for MLT based editors.
+
 Scale `input.mp4` to 480p and apply the ntsc filter using a preset:
 ```sh-session
 FREI0R_PATH=target/release ffmpeg -i input.mp4 \
@@ -37,3 +41,22 @@ FREI0R_PATH=target/release ffmpeg -f lavfi \
 Result:
 
 https://github.com/user-attachments/assets/1cd369f0-4218-4a78-9295-030933893e7f
+
+## MLT
+
+Use ntsc filter with [MLT](https://www.mltframework.org).
+We set parameter `1=30`, this is the time multiplier to convert frei0r time to frame number.
+MLT uses `frame / fps` as the time, so this parameter should be set to the fps for MLT.
+This is only necessary if the video is being interactively seeked,
+for linear encoding it can be left disabled (value 0).
+
+```sh-session
+FREI0R_PATH=target/release melt https://download.samplelib.com/mp4/sample-5s.mp4 \
+  -filter frei0r.ntsc 0=presets/Low-Power-NTSC.json 1=30 \
+  -consumer avformat:output.mp4 scale=0.4444
+```
+
+## kdenlive
+
+Rename the plugin from `ntsc` to `ntscrs` (e.g. `ntscrs.dll` or `ntscrs.so`) to avoid conflicting with an existing plugin.
+Install the renamed plugin and this

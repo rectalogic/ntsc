@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<!DOCTYPE kpartgui>
+<effect xmlns="https://www.kdenlive.org" tag="frei0r.ntscrs" id="frei0r.ntscrs">
+    <name>NTSC-rs</name>
+    <description>Simulates NTSC analog video using ntsc-rs</description>
+    <author>rectalogic</author>
+    <parameter type="url" name="0" filter="ntsc-rs presets (*.json)">
+        <name>Preset</name>
+    </parameter>
+    <parameter type="constant" name="1" default="25" min="0" max="1000">
+        <name>Time multiplier</name>
+    </parameter>
+</effect>
