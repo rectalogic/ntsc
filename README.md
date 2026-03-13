@@ -25,7 +25,7 @@ For nonlinear usage (e.g. in a video editor), set the multiplier to the framerat
 Scale `input.mp4` to 480p and apply the ntsc filter using a preset:
 ```sh-session
 FREI0R_PATH=target/release ffmpeg -i input.mp4 \
-  -vf scale=size=640x480:force_original_aspect_ratio=decrease:reset_sar=1:flags=lanczos,frei0r=ntsc:presets/Low-Power-NTSC.json \
+  -vf scale=size=640x480:force_original_aspect_ratio=decrease:reset_sar=1:flags=lanczos,frei0r=ntscrs:data/Low-Power-NTSC.json \
   -y output.mp4
 ```
 
@@ -33,7 +33,7 @@ Apply ntsc filter to a testcard video:
 ```sh-session
 FREI0R_PATH=target/release ffmpeg -f lavfi \
   -i testsrc2=duration=4:size=640x480:rate=30 \
-  -vf frei0r=ntsc:presets/Low-Power-NTSC.json \
+  -vf frei0r=ntscrs:data/Low-Power-NTSC.json \
   -pix_fmt yuv422p \
   -y output.mp4
 ```
@@ -52,11 +52,13 @@ for linear encoding it can be left disabled (value 0).
 
 ```sh-session
 FREI0R_PATH=target/release melt https://download.samplelib.com/mp4/sample-5s.mp4 \
-  -filter frei0r.ntsc 0=presets/Low-Power-NTSC.json 1=30 \
+  -filter frei0r.ntscrs 0=data/Low-Power-NTSC.json 1=30 \
   -consumer avformat:output.mp4 scale=0.4444
 ```
 
 ## kdenlive
 
-Rename the plugin from `ntsc` to `ntscrs` (e.g. `ntscrs.dll` or `ntscrs.so`) to avoid conflicting with an existing plugin.
-Install the renamed plugin and this
+Install the plugin in the kdenlive `lib/frei0r-1` plugin directory.
+Install this [frei0r_ntscrs.xml](data/frei0r_ntscrs.xml) effect XML in the `kdenlive/effects` XML directory.
+
+Make sure the preview window is <480p or it may not render.

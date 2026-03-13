@@ -37,13 +37,13 @@ fn package(mut args: Args) -> anyhow::Result<()> {
         None
     };
     let pattern = match env::consts::OS {
-        "macos" => target_dir.join("*/libntsc.dylib"),
-        "linux" => target_dir.join("*/libntsc.so"),
+        "macos" => target_dir.join("*/libntscrs.dylib"),
+        "linux" => target_dir.join("*/libntscrs.so"),
         "windows" => {
             if output_dir.is_none() {
                 return Ok(());
             } else {
-                target_dir.join("*/ntsc.dll")
+                target_dir.join("*/ntscrs.dll")
             }
         }
         _ => return Ok(()),

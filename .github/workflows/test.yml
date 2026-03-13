@@ -127,7 +127,7 @@ jobs:
           mkdir output
           ffmpeg -f lavfi \
             -i testsrc=duration=0.2:size=640x480:rate=10:decimals=2,drawbox=color=red:t=ih/16 \
-            -vf frei0r=ntsc:presets/Low-Power-NTSC.json \
+            -vf frei0r=ntscrs:data/Low-Power-NTSC.json \
             -vcodec ffv1 -level 3 \
             -f nut \
             -y output/test.nut
