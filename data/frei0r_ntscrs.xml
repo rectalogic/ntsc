@@ -7,7 +7,7 @@
     <parameter type="url" name="0" filter="ntsc-rs presets (*.json)">
         <name>Preset</name>
     </parameter>
-    <parameter type="constant" name="1" default="29.97" min="0" max="1000">
+    <parameter type="constant" name="1" default="29.97" decimals="2" min="0" max="1000">
         <name>Time multiplier</name>
     </parameter>
 </effect>
